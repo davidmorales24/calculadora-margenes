@@ -82,9 +82,36 @@ td.code{font-family:var(--mono);font-size:.65rem;color:var(--muted);white-space:
 .formula-note{font-size:.65rem;color:var(--muted);margin-top:5px;font-style:italic;}
 .dash-cell{color:var(--muted);font-size:.85rem;font-family:var(--mono);}
 ::-webkit-scrollbar{width:5px;height:5px;}::-webkit-scrollbar-track{background:var(--s1);}::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px;}
+
+/* ===== PANTALLA DE BLOQUEO ===== */
+.lock-screen{position:fixed;inset:0;z-index:1000;background:var(--bg);display:flex;align-items:center;justify-content:center;padding:20px;}
+.lock-card{background:var(--s1);border:1px solid var(--border);border-radius:16px;padding:40px 36px;max-width:340px;width:100%;text-align:center;box-shadow:0 20px 60px rgba(0,0,0,.4);}
+.lock-logo{font-size:36px;margin-bottom:14px;}
+.lock-card h2{font-size:1.1rem;font-weight:600;margin-bottom:6px;}
+.lock-card p{font-size:.8rem;color:var(--muted);margin-bottom:22px;}
+.lock-card input[type=password]{width:100%;background:var(--s2);border:1px solid var(--border);border-radius:9px;padding:11px 14px;color:var(--text);font-size:.9rem;font-family:var(--sans);outline:none;margin-bottom:14px;text-align:center;transition:border-color .2s;}
+.lock-card input[type=password]:focus{border-color:var(--acc);}
+.lock-card button{width:100%;background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;border-radius:9px;padding:11px;color:#fff;font-weight:600;font-size:.88rem;cursor:pointer;transition:opacity .15s;}
+.lock-card button:hover{opacity:.88;}
+.lock-error{font-size:.78rem;color:#f87171;margin-top:14px;display:none;}
+.lock-error.visible{display:block;}
 </style>
 </head>
 <body>
+
+<!-- ===== PANTALLA DE BLOQUEO ===== -->
+<div id="lockScreen" class="lock-screen">
+  <div class="lock-card">
+    <div class="lock-logo">&#128274;</div>
+    <h2>Calculadora de M&#225;rgenes</h2>
+    <p>Ingresa la contrase&#241;a para continuar</p>
+    <input type="password" id="lockPass" placeholder="Contrase&#241;a" autocomplete="off">
+    <button onclick="checkPass()">Ingresar &#8594;</button>
+    <div id="lockError" class="lock-error"></div>
+  </div>
+</div>
+
+<div id="appContent" style="display:none;">
 <header>
   <div class="logo-wrap">
     <div class="logo">&#128202;</div>
@@ -345,6 +372,35 @@ function exportPDF(){
 }
 
 document.getElementById('discInput').addEventListener('keydown',e=>{if(e.key==='Enter')applyFilters();});
+
+// ===== VALIDACION DE CONTRASENA =====
+// CAMBIA el valor de PASSWORD por la contrasena que quieras usar
+const PASSWORD = "MARROQUINERA2026#";
+
+function checkPass(){
+  const val = document.getElementById('lockPass').value;
+  const err = document.getElementById('lockError');
+  if (val === PASSWORD) {
+    document.getElementById('lockScreen').style.display = 'none';
+    document.getElementById('appContent').style.display = 'block';
+    sessionStorage.setItem('cm_unlocked', '1');
+  } else {
+    err.textContent = 'Contrase\u00f1a incorrecta. Intenta de nuevo.';
+    err.className = 'lock-error visible';
+    document.getElementById('lockPass').value = '';
+  }
+}
+
+document.getElementById('lockPass').addEventListener('keydown', e => {
+  if (e.key === 'Enter') checkPass();
+});
+
+// Si ya se desbloqueo en esta misma sesion del navegador, no pedir de nuevo
+if (sessionStorage.getItem('cm_unlocked') === '1') {
+  document.getElementById('lockScreen').style.display = 'none';
+  document.getElementById('appContent').style.display = 'block';
+}
 </script>
+</div>
 </body>
 </html>
