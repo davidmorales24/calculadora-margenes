@@ -34,6 +34,9 @@ header{position:sticky;top:0;z-index:50;background:rgba(13,15,24,.93);backdrop-f
 .disc-row label{font-size:.79rem;color:var(--muted);white-space:nowrap;}
 .disc-row input[type=number]{width:82px;background:var(--s3);border:1px solid var(--border2);border-radius:7px;padding:6px 9px;color:var(--text);font-size:.88rem;font-family:var(--mono);outline:none;transition:border-color .2s;}
 .disc-row input[type=number]:focus{border-color:var(--acc);}
+.inv-toggle{margin-left:auto;background:var(--s3);border:1px solid var(--border2);border-radius:20px;padding:7px 16px;color:var(--muted);font-size:.76rem;font-weight:500;cursor:pointer;transition:all .2s;white-space:nowrap;}
+.inv-toggle:hover{border-color:var(--acc);color:var(--text);}
+.inv-toggle.active{background:rgba(16,185,129,.16);border-color:#10b981;color:#10b981;font-weight:600;}
 .apply-btn{background:linear-gradient(135deg,var(--acc),var(--acc2));border:none;border-radius:8px;padding:9px 16px;color:#fff;font-weight:600;font-size:.79rem;cursor:pointer;white-space:nowrap;transition:opacity .15s,transform .1s;width:100%;}
 .apply-btn:hover{opacity:.88;}.apply-btn:active{transform:scale(.97);}
 .warn-box{background:rgba(239,68,68,.09);border:1px solid rgba(239,68,68,.3);border-radius:10px;padding:10px 14px;color:#fca5a5;font-size:.77rem;margin-bottom:13px;display:none;}
@@ -113,6 +116,7 @@ td.code{font-family:var(--mono);font-size:.65rem;color:var(--muted);white-space:
     <label>Descuento deseado (%) sobre precio inicial &#8212; opcional:</label>
     <input type="number" id="discInput" min="1" max="69" step="1" placeholder="Ej: 40">
     <span style="font-size:.69rem;color:var(--muted)">Si lo dejas vac&#237;o se muestra solo el estado actual</span>
+    <button class="inv-toggle" id="invToggle" onclick="toggleInvFilter()">&#128230; Solo con inventario</button>
   </div>
   <div class="warn-box" id="warnBox"></div>
   <div id="resultsSection"><div class="info-box">Selecciona filtros y presiona Calcular.</div></div>
@@ -123,6 +127,11 @@ const ORDER=['tip','grp','gra','col','mod','clr','tmp'];
 const SID={tip:'fTip',grp:'fGrp',gra:'fGra',col:'fCol',mod:'fMod',clr:'fClr',tmp:'fTmp'};
 const LBL={tip:'Todos',grp:'Todos',gra:'Todos',col:'Todas',mod:'Todos',clr:'Todos',tmp:'Todas'};
 const ST={tip:'',grp:'',gra:'',col:'',mod:'',clr:'',tmp:''};
+let onlyWithStock=false;
+function toggleInvFilter(){
+  onlyWithStock=!onlyWithStock;
+  document.getElementById('invToggle').className='inv-toggle'+(onlyWithStock?' active':'');
+}
 function getF(u){let r=DATA;for(const k of ORDER){if(k===u)break;if(ST[k])r=r.filter(x=>x[k]===ST[k]);}return r;}
 function uniq(rows,k){const s=new Set();rows.forEach(r=>{if(r[k]&&r[k]!='nan'&&r[k]!='')s.add(r[k]);});return[...s].sort((a,b)=>a.localeCompare(b,'es'));}
 function pop(k){const sel=document.getElementById(SID[k]),cur=ST[k],vals=uniq(getF(k),k);sel.innerHTML='<option value="">'+LBL[k]+'</option>';vals.forEach(v=>{const o=document.createElement('option');o.value=v;o.textContent=v;if(v===cur)o.selected=true;sel.appendChild(o);});}
@@ -147,7 +156,11 @@ function applyFilters(){
 
   let rows=DATA;
   ORDER.forEach(k=>{if(ST[k])rows=rows.filter(r=>r[k]===ST[k]);});
-  if(!rows.length){document.getElementById('resultsSection').innerHTML='<div class="info-box">Sin resultados para los filtros seleccionados.</div>';return;}
+  if(onlyWithStock) rows=rows.filter(r=>(r.inv||0)>0);
+  if(!rows.length){
+    document.getElementById('resultsSection').innerHTML='<div class="info-box">'+(onlyWithStock?'No hay referencias con inventario disponible para estos filtros.':'Sin resultados para los filtros seleccionados.')+'</div>';
+    return;
+  }
 
   // Genera 3 escenarios (multiplos de 10, tope 70) que superen TANTO el descuento
   // propuesto por el usuario COMO el descuento ya existente de la fila.
@@ -237,7 +250,7 @@ function applyFilters(){
 
   document.getElementById('resultsSection').innerHTML=
     '<div class="res-header"><div>'+
-    '<div class="res-meta"><strong>'+rows.length+'</strong> producto(s) &#8212; '+fd+'</div>'+
+    '<div class="res-meta"><strong>'+rows.length+'</strong> producto(s) &#8212; '+fd+(onlyWithStock?' &#183; <span style="color:#10b981">&#128230; solo con inventario</span>':'')+'</div>'+
     (totU>0?'<div class="res-meta" style="margin-top:3px">Inventario total filtrado: <strong>'+totU.toLocaleString('es-CO')+' uds</strong> &#183; Valor a costo: <strong>'+fCOP(totV)+'</strong></div>':'')+
     '<div class="formula-note">M = 1 &#8722; (CE / (Precio / 1.19)) &#183; Precio actual = Precio Outlet &#183; Los escenarios siempre superan el descuento propuesto y el ya vigente</div>'+
     '</div><div class="export-row">'+
